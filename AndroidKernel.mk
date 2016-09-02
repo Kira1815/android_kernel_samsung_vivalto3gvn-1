@@ -1,5 +1,4 @@
-KERNEL_OUT ?= $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ
-KERNEL_MODULES_OUT ?= $(TARGET_OUT_INTERMEDIATES)/lib/modules
+KERNEL_OUT ?= $(OUT)/obj/KERNEL_OBJ
 KERNEL_DEFCONFIG ?= cyanogen_vivalto3gvn_defconfig
 KERNEL_CONFIG := $(KERNEL_OUT)/.config
 
@@ -11,18 +10,16 @@ else
 TARGET_PREBUILT_KERNEL := $(KERNEL_OUT)/arch/arm/boot/zImage
 endif
 
+all: $(TARGET_PREBUILT_KERNEL)
+
+kernelheader: $(KERNEL_OUT)
+	$(MAKE) -C $(TARGET_KERNEL_SOURCE) O=$(KERNEL_OUT) ARCH=arm CROSS_COMPILE="ccache arm-eabi-" headers_install
+
 $(KERNEL_OUT):
 	mkdir -p $(KERNEL_OUT)
 
 $(KERNEL_CONFIG): $(TARGET_KERNEL_SOURCE)/arch/arm/configs/$(KERNEL_DEFCONFIG)
 	$(MAKE) -C $(TARGET_KERNEL_SOURCE) O=$(KERNEL_OUT) ARCH=arm CROSS_COMPILE="ccache arm-eabi-" $(KERNEL_DEFCONFIG)
 
-$(TARGET_PREBUILT_KERNEL): $(KERNEL_OUT) $(KERNEL_CONFIG)
-	$(MAKE) -C $(TARGET_KERNEL_SOURCE) O=$(KERNEL_OUT) ARCH=arm CROSS_COMPILE="ccache arm-eabi-" headers_install
+$(TARGET_PREBUILT_KERNEL): kernelheader $(KERNEL_OUT) $(KERNEL_CONFIG)
 	$(MAKE) -C $(TARGET_KERNEL_SOURCE) O=$(KERNEL_OUT) ARCH=arm CROSS_COMPILE="ccache arm-eabi-" zImage -j4
-	$(MAKE) -C $(TARGET_KERNEL_SOURCE) O=$(KERNEL_OUT) ARCH=arm CROSS_COMPILE="ccache arm-eabi-" modules
-	@-mkdir -p $(KERNEL_MODULES_OUT)
-	@-find $(KERNEL_OUT) -name *.ko | xargs -I{} cp {} $(KERNEL_MODULES_OUT)
-
-kernelheader: $(KERNEL_OUT)
-	$(MAKE) -C $(TARGET_KERNEL_SOURCE) O=$(KERNEL_OUT) ARCH=arm CROSS_COMPILE="ccache arm-eabi-" headers_install
